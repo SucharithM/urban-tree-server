@@ -31,11 +31,11 @@
   "description": "",
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.0",
-    "@prisma/client": "^7.0.0",
+    "@prisma/client": "7.0.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "pg": "^8.16.3",
-    "prisma": "^6.19.0"
+    "prisma": "7.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
