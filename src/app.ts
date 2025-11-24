@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 
-import { prisma } from "./config/prisma.config";
+import { prisma } from "./config/db.client";
 
 const app = express();
 
