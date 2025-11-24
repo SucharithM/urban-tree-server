@@ -1,0 +1,36 @@
+generator client {
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model Node {
+  id               BigInt   @id @default(autoincrement())
+  nodeId           String
+  boardId          String
+  name             String
+  location         String
+  siteInvestigator String
+  latitude         String?
+  longitude        String?
+  species          String
+  sensorDepths     String[]
+  createdAt        DateTime @default(now())
+  modifiedAt       DateTime @default(now())
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(VIEWER)
+  createdAt    DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  VIEWER
+}
