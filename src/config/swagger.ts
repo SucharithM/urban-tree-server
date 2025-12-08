@@ -3,7 +3,7 @@ import swaggerJSDoc from "swagger-jsdoc";
 export const swaggerDefinition = {
   openapi: "3.0.0",
   info: {
-    title: "Witness Tree API",
+    title: "Urban Tree API",
     version: "1.0.0",
     description: "REST API for tree sensor data",
   },

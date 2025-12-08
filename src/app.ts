@@ -1,8 +1,10 @@
 import express, { Request, Response } from "express";
 import swaggerUi from "swagger-ui-express";
 
-import { prisma } from "./config/db.client";
+import { supabase } from "./config/supabase.client";
 import { swaggerConfigs } from "./config/swagger";
+import importRoutes from "./routes/import.routes";
+import treeRoutes from "./routes/trees.routes";
 
 const app = express();
 
@@ -14,15 +16,17 @@ app.get("/health", (req: Request, res: Response) => {
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerConfigs));
 
-// JSON endpoint for the spec (optional, for Redoc or clients)
-app.get("/api/docs.json", (req, res) => {
-  res.setHeader("Content-Type", "application/json");
-  res.send(swaggerConfigs);
-});
+app.use("/api/imports", importRoutes);
+app.use("/api/trees", treeRoutes);
 
 app.get("/dbcheck", async (req: Request, res: Response) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    const { error } = await supabase.from("import_jobs").select("id").limit(1);
+
+    if (error) {
+      throw error;
+    }
+
     res.json({ status: "ok", db: "connected", service: "urban-tree-server" });
   } catch (error) {
     console.error("DB Error:", error);
