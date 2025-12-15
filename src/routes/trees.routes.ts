@@ -19,8 +19,8 @@ router.get("/:id/readings", getTreeReadingsHandler);
 
 router.get("/:id/readings/latest", getTreeLatestReadingHandler);
 
-router.get("/trees/:id/readings/processed", getTreeProcessedReadingsHandler);
+router.get("/:id/readings/processed", getTreeProcessedReadingsHandler);
 
-router.get("/trees/:id/readings/summary", getTreeSummaryReadingsHandler);
+router.get("/:id/readings/summary", getTreeSummaryReadingsHandler);
 
 export default router;
