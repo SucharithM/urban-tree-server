@@ -429,10 +429,10 @@ export async function getTreeProcessedReadingsHandler(req: Request, res: Respons
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Maximum number of rows processed before aggregation (default 50000).
+ *         description: Optional cap on number of raw rows fetched before aggregation. Omit to aggregate every available reading in the requested range.
  *     responses:
  *       '200':
- *         description: Summary buckets.
+ *         description: Time buckets containing averages/min/max for raw metrics plus computed dendrometer (mm) and sapflow where available.
  *         content:
  *           application/json:
  *             schema:
