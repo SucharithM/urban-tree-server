@@ -395,7 +395,7 @@ export async function getTreeProcessedReadingsHandler(req: Request, res: Respons
       return res.status(404).json({ error: "Tree not found" });
     }
     console.error("[getTreeSheetReadingsHandler] Error:", err);
-    res.status(500).json({ error: "Failed to fetch sheet-style readings" });
+    res.status(500).json({ error: "Failed to fetch processed readings" });
   }
 }
 
