@@ -2,6 +2,45 @@ import type { Request, Response } from "express";
 
 import { authenticateUser, generateAuthToken } from "../services/auth/auth.service";
 
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Authenticate a user and issue a JWT.
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AuthLoginRequest'
+ *     responses:
+ *       '200':
+ *         description: Login successful.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthLoginResponse'
+ *       '400':
+ *         description: Missing credentials.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '401':
+ *         description: Invalid email/password combination.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '500':
+ *         description: Unexpected error while authenticating.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 export async function loginHandler(req: Request, res: Response) {
   try {
     const { email, password } = req.body as {
@@ -41,6 +80,27 @@ export async function loginHandler(req: Request, res: Response) {
   }
 }
 
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Clear the authentication cookie.
+ *     security: []
+ *     responses:
+ *       '200':
+ *         description: Logout successful.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LogoutResponse'
+ *       '500':
+ *         description: Unexpected error during logout.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 export async function logoutHandler(req: Request, res: Response) {
   try {
     // Clear cookie; client should also drop any stored Bearer token

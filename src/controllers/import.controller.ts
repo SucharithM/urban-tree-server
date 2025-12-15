@@ -4,6 +4,59 @@ import { Request, Response } from "express";
 import { processImportFromBuffer } from "../services/import/importer.service";
 import { getImportJobById, listImportJobs } from "../services/import/importJob.service";
 
+/**
+ * @swagger
+ * /imports/upload:
+ *   post:
+ *     tags: [Imports]
+ *     summary: Upload an XLSX workbook and trigger an import job.
+ *     description: Requires admin privileges. File should be provided in the `file` field.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *             required:
+ *               - file
+ *     responses:
+ *       '201':
+ *         description: Import job created.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ImportJob'
+ *       '400':
+ *         description: Missing file.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '401':
+ *         description: Authentication required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '403':
+ *         description: Admin access required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '500':
+ *         description: Failed to process the import.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 export const uploadImportHandler = async (req: Request, res: Response) => {
   try {
     const file = req.file;
@@ -29,6 +82,27 @@ export const uploadImportHandler = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * @swagger
+ * /imports:
+ *   get:
+ *     tags: [Imports]
+ *     summary: List the latest import jobs.
+ *     security: []
+ *     responses:
+ *       '200':
+ *         description: Recent jobs sorted by start time (desc).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ImportJobListResponse'
+ *       '500':
+ *         description: Failed to fetch jobs.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 export const listImportsHandler = async (req: Request, res: Response) => {
   try {
     const jobs = await listImportJobs();
@@ -41,6 +115,45 @@ export const listImportsHandler = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * @swagger
+ * /imports/{id}:
+ *   get:
+ *     tags: [Imports]
+ *     summary: Fetch a specific import job by ID.
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Import job details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ImportJob'
+ *       '400':
+ *         description: Missing job ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '404':
+ *         description: Job not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '500':
+ *         description: Failed to fetch job.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 export const getImportByIdHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

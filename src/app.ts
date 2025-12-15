@@ -12,6 +12,21 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     tags: [System]
+ *     summary: Health probe for orchestration.
+ *     security: []
+ *     responses:
+ *       '200':
+ *         description: Application is responsive.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthResponse'
+ */
 app.get("/health", (req: Request, res: Response) => {
   res.json({ status: "ok", service: "urban-tree-server" });
 });
@@ -21,6 +36,27 @@ app.use("/api/imports", importRoutes);
 app.use("/api/trees", treeRoutes);
 app.use("/api/auth", authRouter);
 
+/**
+ * @swagger
+ * /dbcheck:
+ *   get:
+ *     tags: [System]
+ *     summary: Verify connectivity between the API and Supabase.
+ *     security: []
+ *     responses:
+ *       '200':
+ *         description: Database query succeeded.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DbCheckResponse'
+ *       '500':
+ *         description: Unable to reach the database.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 app.get("/dbcheck", async (req: Request, res: Response) => {
   try {
     const { error } = await supabase.from("import_jobs").select("id").limit(1);
