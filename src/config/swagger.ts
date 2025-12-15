@@ -1,5 +1,5 @@
+require("dotenv").config();
 import swaggerJSDoc from "swagger-jsdoc";
-
 export const swaggerDefinition = {
   openapi: "3.0.0",
   info: {
@@ -8,9 +8,8 @@ export const swaggerDefinition = {
     description: "REST API for tree sensor data",
   },
   servers: [
-    { url: "http://localhost:3000/api", description: "Development server" },
-    { url: "http://localhost:3000", description: "Node process root (health checks)" },
-    // TODO Update url before deployment to prod. Use ENV
+    { url: `${process.env.SERVER_URL}/api`, description: "Development server" },
+    { url: `${process.env.SERVER_URL}`, description: "Node process root (health checks)" },
   ],
   components: {
     securitySchemes: {

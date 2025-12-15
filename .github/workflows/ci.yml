@@ -11,8 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DIRECT_URL: ${{ secrets.DIRECT_URL }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      AUTH_JWT_SECRET: ${{ secrets.AUTH_JWT_SECRET }}
+      AUTH_JWT_EXPIRES_IN: ${{ secrets.AUTH_JWT_EXPIRES_IN }}
+      SERVER_URL: ${{ secrets.SERVER_URL }}
 
     strategy:
       matrix:
