@@ -15,7 +15,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       AUTH_JWT_SECRET: ${{ secrets.AUTH_JWT_SECRET }}
       AUTH_JWT_EXPIRES_IN: ${{ secrets.AUTH_JWT_EXPIRES_IN }}
-      SERVER_URL: ${{ secrets.SERVER_URL }}
+      BASE_PATH: ${{ secrets.BASE_PATH }}
 
     strategy:
       matrix:

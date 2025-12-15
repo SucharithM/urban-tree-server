@@ -7,10 +7,7 @@ export const swaggerDefinition = {
     version: "1.0.0",
     description: "REST API for tree sensor data",
   },
-  servers: [
-    { url: `${process.env.SERVER_URL}/api`, description: "Development server" },
-    { url: `${process.env.SERVER_URL}`, description: "Node process root (health checks)" },
-  ],
+  servers: [{ url: `${process.env.SERVER_URL}/api`, description: "Public API (Netlify)" }],
   components: {
     securitySchemes: {
       bearerAuth: {
