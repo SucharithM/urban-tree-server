@@ -36,7 +36,8 @@ router.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", service: "urban-tree-server" });
 });
 
-router.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerConfigs));
+app.get("/docs", (req, res) => res.redirect(302, "/docs/"));
+router.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerConfigs));
 router.use("/api/imports", importRoutes);
 router.use("/api/trees", treeRoutes);
 router.use("/api/auth", authRouter);
