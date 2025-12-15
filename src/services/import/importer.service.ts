@@ -25,7 +25,8 @@ function chunkArray<T>(items: T[], chunkSize: number): T[][] {
   }
   return chunks;
 }
-async function upsertComputedReadings(
+
+export async function upsertComputedReadings(
   computed: ParsedComputedReadingRow[],
   nodeIdToTreeId: Map<string, string>,
 ): Promise<{ imported: number; skipped: number }> {
@@ -35,13 +36,13 @@ async function upsertComputedReadings(
 
   const nowIso = new Date().toISOString();
 
-  // Map (treeNodeId, timestamp) -> row to dedupe
+  // Deduplicate by (treeNodeId, timestamp)
   const byKey = new Map<string, any>();
 
   for (const row of computed) {
     const treeNodeId = nodeIdToTreeId.get(row.nodeId);
     if (!treeNodeId) {
-      // Node doesn't exist in tree_nodes (maybe filtered out), skip
+      // Node not in tree_nodes; skip
       continue;
     }
 
@@ -51,6 +52,10 @@ async function upsertComputedReadings(
     byKey.set(key, {
       treeNodeId,
       timestamp: row.timestamp,
+      temperature: row.temperature,
+      pressure: row.pressure,
+      humidity: row.humidity,
+      dendroRaw: row.dendroRaw,
       dendroCalibratedMm: row.dendroCalibratedMm,
       sapflowCmPerHr: row.sapflowCmPerHr,
       sfMaxD: row.sfMaxD,
@@ -62,9 +67,12 @@ async function upsertComputedReadings(
   }
 
   const rows = Array.from(byKey.values());
+  if (!rows.length) {
+    return { imported: 0, skipped: 0 };
+  }
+
   const chunkSize = 500;
   let imported = 0;
-  const skipped = 0;
 
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
@@ -77,13 +85,13 @@ async function upsertComputedReadings(
 
     if (error) {
       console.error("[upsertComputedReadings] Supabase error:", error);
-      throw error;
+      throw new Error(error.message);
     }
 
     imported += count ?? chunk.length;
   }
 
-  return { imported, skipped };
+  return { imported, skipped: 0 };
 }
 
 async function upsertTreeNodes(
@@ -242,7 +250,7 @@ export async function processImportFromBuffer(
       idByNodeId,
     );
 
-    const { imported: computedImported, skipped: computedSkipped } = await upsertComputedReadings(
+    const { imported: compImported, skipped: compSkipped } = await upsertComputedReadings(
       computedReadings,
       idByNodeId,
     );
@@ -252,8 +260,8 @@ export async function processImportFromBuffer(
     const updatedJob = await updateImportJob(job.id, {
       status: "COMPLETED",
       sheetsProcessed,
-      recordsImported: rawImported + computedImported,
-      recordsSkipped: rawSkipped + computedSkipped,
+      recordsImported: rawImported + compImported,
+      recordsSkipped: rawSkipped + compSkipped,
       recordsFailed: 0,
       completedAt,
     });

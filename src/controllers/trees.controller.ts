@@ -372,13 +372,11 @@ export async function getTreeProcessedReadingsHandler(req: Request, res: Respons
     if (!id) {
       return res.status(400).json({ error: "Missing route parameter: id" });
     }
-
-    const { from, to, limit, order, source } = req.query as {
+    const { from, to, limit, order } = req.query as {
       from?: string;
       to?: string;
       limit?: string;
       order?: string;
-      source?: string;
     };
 
     const result = await getProcessedReadingsForTree(id, {
@@ -386,7 +384,6 @@ export async function getTreeProcessedReadingsHandler(req: Request, res: Respons
       to: to ?? undefined,
       limit: limit ? Number(limit) : undefined,
       order: order === "desc" ? "desc" : "asc",
-      source: source === "rawData" || source === "archive" ? source : "all",
     });
 
     res.json(result);
@@ -394,7 +391,7 @@ export async function getTreeProcessedReadingsHandler(req: Request, res: Respons
     if (err?.message === "TREE_NOT_FOUND") {
       return res.status(404).json({ error: "Tree not found" });
     }
-    console.error("[getTreeSheetReadingsHandler] Error:", err);
+    console.error("[getTreeProcessedReadingsHandler] Error:", err);
     res.status(500).json({ error: "Failed to fetch processed readings" });
   }
 }
