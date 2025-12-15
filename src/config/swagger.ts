@@ -1,6 +1,6 @@
 require("dotenv").config();
 import swaggerJSDoc from "swagger-jsdoc";
-const API_BASE_URL = process.env.API_BASE_URL || process.env.SERVER_URL || "http://localhost:3000";
+const API_BASE_URL = process.env.API_BASE_URL || `${process.env.SERVER_URL}/api`;
 export const swaggerDefinition = {
   openapi: "3.0.0",
   info: {
@@ -8,9 +8,7 @@ export const swaggerDefinition = {
     version: "1.0.0",
     description: "REST API for tree sensor data",
   },
-  servers: [
-    { url: process.env.API_BASE_URL || `${process.env.SERVER_URL}/api`, description: "API" },
-  ],
+  servers: [{ url: API_BASE_URL, description: "API" }],
   components: {
     securitySchemes: {
       bearerAuth: {
