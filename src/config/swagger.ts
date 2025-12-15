@@ -8,7 +8,9 @@ export const swaggerDefinition = {
     version: "1.0.0",
     description: "REST API for tree sensor data",
   },
-  servers: [{ url: API_BASE_URL, description: "API" }],
+  servers: [
+    { url: process.env.API_BASE_URL || `${process.env.SERVER_URL}/api`, description: "API" },
+  ],
   components: {
     securitySchemes: {
       bearerAuth: {

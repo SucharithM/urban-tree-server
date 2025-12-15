@@ -32,14 +32,14 @@ app.use(BASE_PATH, router);
  *             schema:
  *               $ref: '#/components/schemas/HealthResponse'
  */
-router.get("/health", (req: Request, res: Response) => {
+router.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", service: "urban-tree-server" });
 });
 
-router.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerConfigs));
-router.use("/imports", importRoutes);
-router.use("/trees", treeRoutes);
-router.use("/auth", authRouter);
+router.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerConfigs));
+router.use("/api/imports", importRoutes);
+router.use("/api/trees", treeRoutes);
+router.use("/api/auth", authRouter);
 
 /**
  * @swagger
@@ -62,7 +62,7 @@ router.use("/auth", authRouter);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/dbcheck", async (req: Request, res: Response) => {
+router.get("/api/dbcheck", async (req: Request, res: Response) => {
   try {
     const { error } = await supabase.from("import_jobs").select("id").limit(1);
 
