@@ -7,6 +7,18 @@ directory = "netlify/functions"
 node_bundler = "esbuild"
 included_files = ["src/**"]
 
+# Swagger UI (outside /api)
+[[redirects]]
+from = "/docs"
+to = "/.netlify/functions/server/docs"
+status = 200
+
+[[redirects]]
+from = "/docs/*"
+to = "/.netlify/functions/server/docs/:splat"
+status = 200
+
+# API
 [[redirects]]
 from = "/api/*"
 to = "/.netlify/functions/server/api/:splat"
