@@ -7,6 +7,7 @@ import {
   getReadingsForTree,
   getLatestReadingForTreeRaw,
 } from "../services/readings/rawReading.service";
+import { getTreeReadingSummary } from "../services/readings/summaryReading.service";
 import { listTrees, getTreeById } from "../services/trees/tree.service";
 
 export async function getTreesHandler(req: Request, res: Response) {
@@ -137,5 +138,40 @@ export async function getTreeProcessedReadingsHandler(req: Request, res: Respons
     }
     console.error("[getTreeSheetReadingsHandler] Error:", err);
     res.status(500).json({ error: "Failed to fetch sheet-style readings" });
+  }
+}
+
+export async function getTreeSummaryReadingsHandler(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "Missing route parameter: id" });
+    }
+
+    const { from, to, source, bucketSize, limit } = req.query as {
+      from?: string;
+      to?: string;
+      source?: string;
+      bucketSize?: string;
+      limit?: string;
+    };
+
+    const sizeParam = bucketSize === "hour" || bucketSize === "all" ? bucketSize : "day";
+
+    const result = await getTreeReadingSummary(id, {
+      from: from ?? undefined,
+      to: to ?? undefined,
+      source: source === "rawData" || source === "archive" ? source : "all",
+      bucketSize: sizeParam,
+      limit: limit ? Number(limit) : undefined,
+    });
+
+    res.json(result);
+  } catch (err: any) {
+    if (err?.message === "TREE_NOT_FOUND") {
+      return res.status(404).json({ error: "Tree not found" });
+    }
+    console.error("[getTreeSummaryReadingsHandler] Error:", err);
+    res.status(500).json({ error: "Failed to fetch summary readings" });
   }
 }

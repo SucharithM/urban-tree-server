@@ -84,3 +84,42 @@ export type GetTreeProcessedReadingsResponse = {
   readings: ProcessedReadingPoint[];
   total: number;
 };
+
+export type TreeReadingSummaryBucket = {
+  bucketStart: string;
+  bucketEnd: string;
+  bucketSize: "all" | "day" | "hour";
+  count: number;
+
+  avgTemperature?: number | null;
+  minTemperature?: number | null;
+  maxTemperature?: number | null;
+
+  avgPressure?: number | null;
+  minPressure?: number | null;
+  maxPressure?: number | null;
+
+  avgHumidity?: number | null;
+  minHumidity?: number | null;
+  maxHumidity?: number | null;
+
+  avgDendroRaw?: number | null;
+  minDendroRaw?: number | null;
+  maxDendroRaw?: number | null;
+
+  avgDendroMm?: number | null;
+  minDendroMm?: number | null;
+  maxDendroMm?: number | null;
+
+  avgSapflowCmPerHr?: number | null;
+  minSapflowCmPerHr?: number | null;
+  maxSapflowCmPerHr?: number | null;
+};
+
+export type GetTreeReadingSummaryResponse = {
+  treeId: string;
+  nodeId: string;
+  name: string | null;
+  bucketSize: "all" | "day" | "hour";
+  buckets: TreeReadingSummaryBucket[];
+};
