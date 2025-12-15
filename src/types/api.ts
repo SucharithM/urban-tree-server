@@ -63,3 +63,24 @@ export type GetTreeReadingsResponse = {
   count: number;
   items: ReadingPoint[];
 };
+
+export type ProcessedReadingPoint = {
+  timestamp: string;
+  temperature?: number | null;
+  pressure?: number | null;
+  humidity?: number | null;
+  dendroRaw?: number | null;
+  sapflowCmPerHr?: number | null;
+  sfMaxD?: number | null;
+  sfSignal?: number | null;
+  sfNoise?: number | null;
+  dendroMm?: number | null;
+};
+
+export type GetTreeProcessedReadingsResponse = {
+  treeId: string;
+  nodeId: string;
+  name: string | null;
+  readings: ProcessedReadingPoint[];
+  total: number;
+};

@@ -5,6 +5,7 @@ import {
   getTreeByIdHandler,
   getTreeReadingsHandler,
   getTreeLatestReadingHandler,
+  getTreeProcessedReadingsHandler,
 } from "../controllers/trees.controller";
 
 const router = Router();
@@ -16,5 +17,7 @@ router.get("/:id", getTreeByIdHandler);
 router.get("/:id/readings", getTreeReadingsHandler);
 
 router.get("/:id/readings/latest", getTreeLatestReadingHandler);
+
+router.get("/trees/:id/readings/processed", getTreeProcessedReadingsHandler);
 
 export default router;

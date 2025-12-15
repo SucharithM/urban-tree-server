@@ -2,6 +2,7 @@
 
 import { Request, Response } from "express";
 
+import { getProcessedReadingsForTree } from "../services/readings/processedReading.service";
 import {
   getReadingsForTree,
   getLatestReadingForTreeRaw,
@@ -103,5 +104,38 @@ export async function getTreeLatestReadingHandler(req: Request, res: Response) {
   } catch (err: any) {
     console.error("[getTreeLatestReadingHandler] Error:", err);
     res.status(500).json({ error: "Failed to fetch latest reading" });
+  }
+}
+
+export async function getTreeProcessedReadingsHandler(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "Missing route parameter: id" });
+    }
+
+    const { from, to, limit, order, source } = req.query as {
+      from?: string;
+      to?: string;
+      limit?: string;
+      order?: string;
+      source?: string;
+    };
+
+    const result = await getProcessedReadingsForTree(id, {
+      from: from ?? undefined,
+      to: to ?? undefined,
+      limit: limit ? Number(limit) : undefined,
+      order: order === "desc" ? "desc" : "asc",
+      source: source === "rawData" || source === "archive" ? source : "all",
+    });
+
+    res.json(result);
+  } catch (err: any) {
+    if (err?.message === "TREE_NOT_FOUND") {
+      return res.status(404).json({ error: "Tree not found" });
+    }
+    console.error("[getTreeSheetReadingsHandler] Error:", err);
+    res.status(500).json({ error: "Failed to fetch sheet-style readings" });
   }
 }

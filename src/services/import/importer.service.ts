@@ -1,6 +1,11 @@
 import { supabase } from "../../config/supabase.client";
 
-import { parseWorkbook, ParsedNodeInfoRow, ParsedReadingRow } from "./../excel.service";
+import {
+  parseWorkbook,
+  ParsedNodeInfoRow,
+  ParsedReadingRow,
+  ParsedComputedReadingRow,
+} from "./../excel.service";
 import { createImportJob, updateImportJob, ImportJobRow } from "./importJob.service";
 
 interface ImportFromBufferParams {
@@ -20,22 +25,76 @@ function chunkArray<T>(items: T[], chunkSize: number): T[][] {
   }
   return chunks;
 }
+async function upsertComputedReadings(
+  computed: ParsedComputedReadingRow[],
+  nodeIdToTreeId: Map<string, string>,
+): Promise<{ imported: number; skipped: number }> {
+  if (!computed.length) {
+    return { imported: 0, skipped: 0 };
+  }
 
-/**
- * Upserts tree metadata into tree_nodes table based on nodeInfo and readings.
- * Returns a mapping from Node string -> tree_nodes.id (PK).
- */
+  const nowIso = new Date().toISOString();
+
+  // Map (treeNodeId, timestamp) -> row to dedupe
+  const byKey = new Map<string, any>();
+
+  for (const row of computed) {
+    const treeNodeId = nodeIdToTreeId.get(row.nodeId);
+    if (!treeNodeId) {
+      // Node doesn't exist in tree_nodes (maybe filtered out), skip
+      continue;
+    }
+
+    const key = `${treeNodeId}__${row.timestamp}`;
+    if (byKey.has(key)) continue;
+
+    byKey.set(key, {
+      treeNodeId,
+      timestamp: row.timestamp,
+      dendroCalibratedMm: row.dendroCalibratedMm,
+      sapflowCmPerHr: row.sapflowCmPerHr,
+      sfMaxD: row.sfMaxD,
+      sfSignal: row.sfSignal,
+      sfNoise: row.sfNoise,
+      dataSource: row.dataSource,
+      importedAt: nowIso,
+    });
+  }
+
+  const rows = Array.from(byKey.values());
+  const chunkSize = 500;
+  let imported = 0;
+  const skipped = 0;
+
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    const chunk = rows.slice(i, i + chunkSize);
+
+    const { error, status, count } = await supabase.from("computed_readings").upsert(chunk, {
+      onConflict: "treeNodeId,timestamp",
+      ignoreDuplicates: false,
+      count: "exact",
+    });
+
+    if (error) {
+      console.error("[upsertComputedReadings] Supabase error:", error);
+      throw error;
+    }
+
+    imported += count ?? chunk.length;
+  }
+
+  return { imported, skipped };
+}
+
 async function upsertTreeNodes(
   nodeInfo: ParsedNodeInfoRow[],
   readings: ParsedReadingRow[],
 ): Promise<Map<string, string>> {
-  // Build a map from nodeId -> metadata from nodeInfo
   const nodeInfoByNode = new Map<string, ParsedNodeInfoRow>();
   for (const row of nodeInfo) {
     nodeInfoByNode.set(row.node, row);
   }
 
-  // Collect all node IDs that appear anywhere (metadata or readings)
   const nodeIdsFromReadings = new Set<string>();
   for (const r of readings) {
     nodeIdsFromReadings.add(r.node);
@@ -47,7 +106,6 @@ async function upsertTreeNodes(
     return new Map();
   }
 
-  // Build payload for upsert
   const payload: any[] = [];
   for (const node of allNodeIds) {
     const info = nodeInfoByNode.get(node);
@@ -68,7 +126,6 @@ async function upsertTreeNodes(
     });
   }
 
-  // Upsert into tree_nodes on unique nodeId
   const { data, error } = await supabase
     .from(TREE_TABLE)
     .upsert(payload, { onConflict: "nodeId" })
@@ -104,7 +161,6 @@ async function upsertRawReadings(
   for (const r of readings) {
     const treeNodeId = idByNodeId.get(r.node);
     if (!treeNodeId) {
-      // No matching tree node (should be rare if nodeInfo is complete)
       skipped += 1;
       continue;
     }
@@ -112,8 +168,6 @@ async function upsertRawReadings(
     const tsIso = r.timestamp.toISOString();
     const key = `${treeNodeId}__${tsIso}`;
 
-    // If we already have a row for this (treeNodeId, timestamp) in THIS batch,
-    // skip the duplicate.
     if (rowsByKey.has(key)) {
       skipped += 1;
       continue;
@@ -179,19 +233,27 @@ export async function processImportFromBuffer(
   });
 
   try {
-    const parsed = parseWorkbook(buffer);
+    const { nodeInfo, readings, computedReadings, sheetsProcessed } = parseWorkbook(buffer);
 
-    const idByNodeId = await upsertTreeNodes(parsed.nodeInfo, parsed.readings);
+    const idByNodeId = await upsertTreeNodes(nodeInfo, readings);
 
-    const { imported, skipped } = await upsertRawReadings(parsed.readings, idByNodeId);
+    const { imported: rawImported, skipped: rawSkipped } = await upsertRawReadings(
+      readings,
+      idByNodeId,
+    );
+
+    const { imported: computedImported, skipped: computedSkipped } = await upsertComputedReadings(
+      computedReadings,
+      idByNodeId,
+    );
 
     const completedAt = new Date().toISOString();
 
     const updatedJob = await updateImportJob(job.id, {
       status: "COMPLETED",
-      sheetsProcessed: parsed.sheetsProcessed,
-      recordsImported: imported,
-      recordsSkipped: skipped,
+      sheetsProcessed,
+      recordsImported: rawImported + computedImported,
+      recordsSkipped: rawSkipped + computedSkipped,
       recordsFailed: 0,
       completedAt,
     });
