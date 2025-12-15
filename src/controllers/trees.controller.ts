@@ -1,5 +1,3 @@
-// src/controllers/trees.controller.ts
-
 import { Request, Response } from "express";
 
 import { getProcessedReadingsForTree } from "../services/readings/processedReading.service";
@@ -335,14 +333,9 @@ export async function getTreeLatestReadingHandler(req: Request, res: Response) {
  *         schema:
  *           type: string
  *           enum: [asc, desc]
- *       - in: query
- *         name: source
- *         schema:
- *           type: string
- *           enum: [rawData, archive, all]
  *     responses:
  *       '200':
- *         description: Processed readings bundled with metadata.
+ *         description: Processed readings bundled with metadata. Includes a `source` indicator to show whether rows were pulled from `computed_readings` or the raw fallback.
  *         content:
  *           application/json:
  *             schema:
@@ -372,13 +365,11 @@ export async function getTreeProcessedReadingsHandler(req: Request, res: Respons
     if (!id) {
       return res.status(400).json({ error: "Missing route parameter: id" });
     }
-
-    const { from, to, limit, order, source } = req.query as {
+    const { from, to, limit, order } = req.query as {
       from?: string;
       to?: string;
       limit?: string;
       order?: string;
-      source?: string;
     };
 
     const result = await getProcessedReadingsForTree(id, {
@@ -386,7 +377,6 @@ export async function getTreeProcessedReadingsHandler(req: Request, res: Respons
       to: to ?? undefined,
       limit: limit ? Number(limit) : undefined,
       order: order === "desc" ? "desc" : "asc",
-      source: source === "rawData" || source === "archive" ? source : "all",
     });
 
     res.json(result);
@@ -394,7 +384,7 @@ export async function getTreeProcessedReadingsHandler(req: Request, res: Respons
     if (err?.message === "TREE_NOT_FOUND") {
       return res.status(404).json({ error: "Tree not found" });
     }
-    console.error("[getTreeSheetReadingsHandler] Error:", err);
+    console.error("[getTreeProcessedReadingsHandler] Error:", err);
     res.status(500).json({ error: "Failed to fetch processed readings" });
   }
 }
@@ -437,10 +427,10 @@ export async function getTreeProcessedReadingsHandler(req: Request, res: Respons
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Maximum number of rows processed before aggregation (default 50000).
+ *         description: Optional cap on number of raw rows fetched before aggregation. Omit to aggregate every available reading in the requested range.
  *     responses:
  *       '200':
- *         description: Summary buckets.
+ *         description: Time buckets containing averages/min/max for raw metrics plus computed dendrometer (mm) and sapflow where available.
  *         content:
  *           application/json:
  *             schema:

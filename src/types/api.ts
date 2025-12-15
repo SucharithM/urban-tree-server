@@ -70,17 +70,18 @@ export type ProcessedReadingPoint = {
   pressure?: number | null;
   humidity?: number | null;
   dendroRaw?: number | null;
+  dendroMm?: number | null;
   sapflowCmPerHr?: number | null;
   sfMaxD?: number | null;
   sfSignal?: number | null;
   sfNoise?: number | null;
-  dendroMm?: number | null;
 };
 
 export type GetTreeProcessedReadingsResponse = {
   treeId: string;
   nodeId: string;
   name: string | null;
+  source: "computed" | "raw-fallback";
   readings: ProcessedReadingPoint[];
   total: number;
 };

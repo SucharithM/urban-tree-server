@@ -25,7 +25,8 @@ function chunkArray<T>(items: T[], chunkSize: number): T[][] {
   }
   return chunks;
 }
-async function upsertComputedReadings(
+
+export async function upsertComputedReadings(
   computed: ParsedComputedReadingRow[],
   nodeIdToTreeId: Map<string, string>,
 ): Promise<{ imported: number; skipped: number }> {
@@ -34,14 +35,11 @@ async function upsertComputedReadings(
   }
 
   const nowIso = new Date().toISOString();
-
-  // Map (treeNodeId, timestamp) -> row to dedupe
   const byKey = new Map<string, any>();
 
   for (const row of computed) {
     const treeNodeId = nodeIdToTreeId.get(row.nodeId);
     if (!treeNodeId) {
-      // Node doesn't exist in tree_nodes (maybe filtered out), skip
       continue;
     }
 
@@ -51,6 +49,10 @@ async function upsertComputedReadings(
     byKey.set(key, {
       treeNodeId,
       timestamp: row.timestamp,
+      temperature: row.temperature,
+      pressure: row.pressure,
+      humidity: row.humidity,
+      dendroRaw: row.dendroRaw,
       dendroCalibratedMm: row.dendroCalibratedMm,
       sapflowCmPerHr: row.sapflowCmPerHr,
       sfMaxD: row.sfMaxD,
@@ -62,28 +64,48 @@ async function upsertComputedReadings(
   }
 
   const rows = Array.from(byKey.values());
+  if (!rows.length) {
+    return { imported: 0, skipped: 0 };
+  }
+
   const chunkSize = 500;
   let imported = 0;
-  const skipped = 0;
 
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
 
-    const { error, count } = await supabase.from("computed_readings").upsert(chunk, {
-      onConflict: "treeNodeId,timestamp",
-      ignoreDuplicates: false,
-      count: "exact",
-    });
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const { error, count } = await supabase.from("computed_readings").upsert(chunk, {
+          onConflict: "treeNodeId,timestamp",
+          ignoreDuplicates: false,
+          count: "exact",
+        });
 
-    if (error) {
-      console.error("[upsertComputedReadings] Supabase error:", error);
-      throw error;
+        if (error) {
+          console.error("[upsertComputedReadings] Supabase error:", error);
+          throw new Error(error.message);
+        }
+
+        imported += count ?? chunk.length;
+        break;
+      } catch (err) {
+        retries--;
+        if (retries === 0) throw err;
+
+        console.log(`[upsertComputedReadings] Retry ${3 - retries}/3`);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
     }
 
-    imported += count ?? chunk.length;
+    // Add delay between chunks
+    if (i + chunkSize < rows.length) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
   }
 
-  return { imported, skipped };
+  return { imported, skipped: 0 };
 }
 
 async function upsertTreeNodes(
@@ -198,19 +220,56 @@ async function upsertRawReadings(
   }
 
   const chunks = chunkArray(rowsToInsert, 500);
-  for (const chunk of chunks) {
-    const { error } = await supabase
-      .from(RAW_TABLE)
-      .upsert(chunk, { onConflict: "treeNodeId,timestamp" });
+  let imported = 0;
 
-    if (error) {
-      console.error("[upsertRawReadings] Supabase error:", error);
-      throw new Error("Failed to upsert raw readings");
+  // Use traditional for loop with index
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    if (!chunk) {
+      console.error(`[upsertRawReadings] Chunk ${i} is undefined`);
+      continue;
+    }
+
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const { error } = await supabase
+          .from(RAW_TABLE)
+          .upsert(chunk, { onConflict: "treeNodeId,timestamp" });
+
+        if (error) {
+          console.error("[upsertRawReadings] Supabase error:", error);
+          throw new Error("Failed to upsert raw readings");
+        }
+
+        imported += chunk.length;
+        break; // Success, exit retry loop
+      } catch (err) {
+        retries--;
+        if (retries === 0) throw err;
+
+        console.log(
+          `[upsertRawReadings] Retry ${3 - retries}/3 for chunk ${i + 1}/${chunks.length}`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2s before retry
+      }
+    }
+
+    // Add delay between chunks to avoid overwhelming Supabase
+    if (i < chunks.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 500)); // 500ms delay
+    }
+
+    // Log progress every 10 chunks
+    if ((i + 1) % 10 === 0) {
+      console.log(
+        `[upsertRawReadings] Progress: ${i + 1}/${chunks.length} chunks (${imported} rows)`,
+      );
     }
   }
 
   return {
-    imported: rowsToInsert.length,
+    imported,
     skipped,
   };
 }
@@ -242,7 +301,7 @@ export async function processImportFromBuffer(
       idByNodeId,
     );
 
-    const { imported: computedImported, skipped: computedSkipped } = await upsertComputedReadings(
+    const { imported: compImported, skipped: compSkipped } = await upsertComputedReadings(
       computedReadings,
       idByNodeId,
     );
@@ -252,8 +311,8 @@ export async function processImportFromBuffer(
     const updatedJob = await updateImportJob(job.id, {
       status: "COMPLETED",
       sheetsProcessed,
-      recordsImported: rawImported + computedImported,
-      recordsSkipped: rawSkipped + computedSkipped,
+      recordsImported: rawImported + compImported,
+      recordsSkipped: rawSkipped + compSkipped,
       recordsFailed: 0,
       completedAt,
     });

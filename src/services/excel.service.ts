@@ -18,11 +18,15 @@ export interface ParsedNodeInfoRow {
 export type ParsedComputedReadingRow = {
   nodeId: string;
   timestamp: string;
+  temperature: number | null;
+  pressure: number | null;
+  humidity: number | null;
+  dendroRaw: number | null;
+  dendroCalibratedMm: number | null;
   sapflowCmPerHr: number | null;
   sfMaxD: number | null;
   sfSignal: number | null;
   sfNoise: number | null;
-  dendroCalibratedMm: number | null;
   dataSource: string;
 };
 
@@ -156,8 +160,8 @@ export function parseWorkbook(buffer: Buffer): ParsedWorkbookResult {
         const cell = sheet[addr];
         if (cell && typeof cell.v === "string" && cell.v.toUpperCase().startsWith("NODE ID")) {
           const rightCell = sheet[XLSX.utils.encode_cell({ r, c: c + 1 })];
-          if (rightCell && typeof rightCell.v === "string") {
-            nodeId = rightCell.v.trim();
+          if (rightCell && rightCell.v != null) {
+            nodeId = String(rightCell.v).trim();
             break outerNodeLoop;
           }
         }
@@ -165,9 +169,11 @@ export function parseWorkbook(buffer: Buffer): ParsedWorkbookResult {
     }
 
     if (!nodeId) {
+      // not one of the professor per-node sheets
       return rows;
     }
 
+    // 2) Find header row with "Timestamp (Raw)"
     let headerRow = -1;
 
     for (let r = 0; r <= range.e.r; r++) {
@@ -182,21 +188,23 @@ export function parseWorkbook(buffer: Buffer): ParsedWorkbookResult {
       if (headerRow !== -1) break;
     }
 
-    if (headerRow === -1) {
-      return rows;
-    }
+    if (headerRow === -1) return rows;
 
+    // 3) Map column labels -> indices
     const headerMap: Record<string, number> = {};
     for (let c = 0; c <= range.e.c; c++) {
       const addr = XLSX.utils.encode_cell({ r: headerRow, c });
       const cell = sheet[addr];
       if (!cell || typeof cell.v !== "string") continue;
-
       const label = cell.v.trim();
 
       if (
         [
           "Timestamp (Raw)",
+          "Temperature (C)",
+          "Pressure (hPa)",
+          "Humidity (%)",
+          "Dendro (Raw)",
           "Sapflow (cm/hr)",
           "SF maxD",
           "SF Signal",
@@ -211,6 +219,10 @@ export function parseWorkbook(buffer: Buffer): ParsedWorkbookResult {
     const tsCol = headerMap["Timestamp (Raw)"];
     if (tsCol === undefined) return rows;
 
+    const tempCol = headerMap["Temperature (C)"];
+    const presCol = headerMap["Pressure (hPa)"];
+    const humCol = headerMap["Humidity (%)"];
+    const dendroRawCol = headerMap["Dendro (Raw)"];
     const sapflowCol = headerMap["Sapflow (cm/hr)"];
     const sfMaxDCol = headerMap["SF maxD"];
     const sfSignalCol = headerMap["SF Signal"];
@@ -224,34 +236,52 @@ export function parseWorkbook(buffer: Buffer): ParsedWorkbookResult {
       return Number.isFinite(n) ? n : null;
     };
 
+    // 4) Data rows
     for (let r = headerRow + 1; r <= range.e.r; r++) {
       const tsAddr = XLSX.utils.encode_cell({ r, c: tsCol });
       const tsCell = sheet[tsAddr];
-      if (!tsCell || !tsCell.v) {
+      if (!tsCell || tsCell.v == null || tsCell.v === "") {
         continue;
       }
 
       const timestampRaw = String(tsCell.v).trim();
       if (!timestampRaw) continue;
 
-      const row: ParsedComputedReadingRow = {
+      rows.push({
         nodeId,
         timestamp: timestampRaw,
-        sapflowCmPerHr: sapflowCol
-          ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: sapflowCol })])
-          : null,
-        sfMaxD: sfMaxDCol ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: sfMaxDCol })]) : null,
-        sfSignal: sfSignalCol
-          ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: sfSignalCol })])
-          : null,
-        sfNoise: sfNoiseCol ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: sfNoiseCol })]) : null,
-        dendroCalibratedMm: dendroMmCol
-          ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: dendroMmCol })])
-          : null,
+        temperature:
+          tempCol !== undefined ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: tempCol })]) : null,
+        pressure:
+          presCol !== undefined ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: presCol })]) : null,
+        humidity:
+          humCol !== undefined ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: humCol })]) : null,
+        dendroRaw:
+          dendroRawCol !== undefined
+            ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: dendroRawCol })])
+            : null,
+        sapflowCmPerHr:
+          sapflowCol !== undefined
+            ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: sapflowCol })])
+            : null,
+        sfMaxD:
+          sfMaxDCol !== undefined
+            ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: sfMaxDCol })])
+            : null,
+        sfSignal:
+          sfSignalCol !== undefined
+            ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: sfSignalCol })])
+            : null,
+        sfNoise:
+          sfNoiseCol !== undefined
+            ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: sfNoiseCol })])
+            : null,
+        dendroCalibratedMm:
+          dendroMmCol !== undefined
+            ? toNumber(sheet[XLSX.utils.encode_cell({ r, c: dendroMmCol })])
+            : null,
         dataSource: sheetName,
-      };
-
-      rows.push(row);
+      });
     }
 
     return rows;
