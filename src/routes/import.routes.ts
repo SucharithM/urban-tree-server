@@ -7,6 +7,7 @@ import {
   listImportsHandler,
   getImportByIdHandler,
 } from "../controllers/import.controller";
+import { authenticate, requireAdmin } from "../middleware/auth.middleware";
 
 const router = Router();
 
@@ -19,7 +20,7 @@ const upload = multer({
 });
 
 // POST /api/imports/upload
-router.post("/upload", upload.single("file"), uploadImportHandler);
+router.post("/upload", authenticate, requireAdmin, upload.single("file"), uploadImportHandler);
 
 // GET /api/imports
 router.get("/", listImportsHandler);
