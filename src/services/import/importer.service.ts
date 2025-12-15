@@ -69,7 +69,7 @@ async function upsertComputedReadings(
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
 
-    const { error, status, count } = await supabase.from("computed_readings").upsert(chunk, {
+    const { error, count } = await supabase.from("computed_readings").upsert(chunk, {
       onConflict: "treeNodeId,timestamp",
       ignoreDuplicates: false,
       count: "exact",
