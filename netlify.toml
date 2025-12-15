@@ -9,5 +9,5 @@ included_files = ["src/**"]
 
 [[redirects]]
 from = "/api/*"
-to = "/.netlify/functions/server/:splat"
+to = "/.netlify/functions/server/api/:splat"
 status = 200
