@@ -1,5 +1,3 @@
-// src/controllers/trees.controller.ts
-
 import { Request, Response } from "express";
 
 import { getProcessedReadingsForTree } from "../services/readings/processedReading.service";
