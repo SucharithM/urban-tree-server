@@ -335,14 +335,9 @@ export async function getTreeLatestReadingHandler(req: Request, res: Response) {
  *         schema:
  *           type: string
  *           enum: [asc, desc]
- *       - in: query
- *         name: source
- *         schema:
- *           type: string
- *           enum: [rawData, archive, all]
  *     responses:
  *       '200':
- *         description: Processed readings bundled with metadata.
+ *         description: Processed readings bundled with metadata. Includes a `source` indicator to show whether rows were pulled from `computed_readings` or the raw fallback.
  *         content:
  *           application/json:
  *             schema:

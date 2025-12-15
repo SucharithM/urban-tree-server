@@ -68,7 +68,7 @@ function finalizeMetric(agg?: MetricAgg): {
 
 function truncateToBucketStart(date: Date, bucketSize: "all" | "day" | "hour"): Date {
   if (bucketSize === "all") {
-    return new Date(0); // epoch; we'll override later
+    return new Date(0);
   }
 
   const dateObject = new Date(date);
@@ -115,8 +115,6 @@ export async function getTreeReadingSummary(
     throw new Error("TREE_NOT_FOUND");
   }
 
-  const maxRows = limit ?? 50000;
-
   let rawQuery = supabase
     .from("raw_readings")
     .select(
@@ -130,8 +128,11 @@ export async function getTreeReadingSummary(
     `,
     )
     .eq("treeNodeId", treeId)
-    .order("timestamp", { ascending: true })
-    .limit(maxRows);
+    .order("timestamp", { ascending: true });
+
+  if (limit !== undefined) {
+    rawQuery = rawQuery.limit(limit);
+  }
 
   if (from) rawQuery = rawQuery.gte("timestamp", from);
   if (to) rawQuery = rawQuery.lt("timestamp", to);
@@ -155,11 +156,7 @@ export async function getTreeReadingSummary(
     };
   }
 
-  const timestamps = rawRows.map((r: any) => r.timestamp);
-
-  const computedMap = new Map<string, any>();
-
-  const { data: compData, error: compError } = await supabase
+  let compQuery = supabase
     .from("computed_readings")
     .select(
       `
@@ -169,12 +166,18 @@ export async function getTreeReadingSummary(
     `,
     )
     .eq("treeNodeId", treeId)
-    .in("timestamp", timestamps);
+    .order("timestamp", { ascending: true });
+
+  if (from) compQuery = compQuery.gte("timestamp", from);
+  if (to) compQuery = compQuery.lt("timestamp", to);
+
+  const { data: compData, error: compError } = await compQuery;
 
   if (compError) {
     throw new Error(`Failed to fetch computed readings: ${compError.message}`);
   }
 
+  const computedMap = new Map<string, any>();
   (compData ?? []).forEach((row: any) => {
     computedMap.set(row.timestamp, row);
   });
@@ -200,9 +203,7 @@ export async function getTreeReadingSummary(
     let bucket = bucketMap.get(key);
     if (!bucket) {
       const end =
-        bucketSize === "all"
-          ? new Date(0) // temporary; will adjust later
-          : computeBucketEnd(bucketStartDate, bucketSize);
+        bucketSize === "all" ? new Date(0) : computeBucketEnd(bucketStartDate, bucketSize);
 
       bucket = {
         start: bucketStartDate,

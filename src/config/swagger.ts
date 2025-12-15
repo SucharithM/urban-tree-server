@@ -163,12 +163,14 @@ export const swaggerDefinition = {
           treeId: { type: "string" },
           nodeId: { type: "string" },
           name: { type: "string", nullable: true },
+          source: { type: "string", enum: ["computed", "raw-fallback"] },
           readings: {
             type: "array",
             items: { $ref: "#/components/schemas/ProcessedReadingPoint" },
           },
           total: { type: "integer" },
         },
+        required: ["treeId", "nodeId", "source", "readings", "total"],
       },
       TreeReadingSummaryBucket: {
         type: "object",
