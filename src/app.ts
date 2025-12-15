@@ -12,6 +12,11 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 
+const BASE_PATH = process.env.BASE_PATH ?? "";
+
+const router = express.Router();
+app.use(BASE_PATH, router);
+
 /**
  * @swagger
  * /health:
@@ -27,14 +32,14 @@ app.use(express.json());
  *             schema:
  *               $ref: '#/components/schemas/HealthResponse'
  */
-app.get("/health", (req: Request, res: Response) => {
+router.get("/health", (req: Request, res: Response) => {
   res.json({ status: "ok", service: "urban-tree-server" });
 });
 
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerConfigs));
-app.use("/api/imports", importRoutes);
-app.use("/api/trees", treeRoutes);
-app.use("/api/auth", authRouter);
+router.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerConfigs));
+router.use("/imports", importRoutes);
+router.use("/trees", treeRoutes);
+router.use("/auth", authRouter);
 
 /**
  * @swagger
@@ -57,13 +62,11 @@ app.use("/api/auth", authRouter);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-app.get("/dbcheck", async (req: Request, res: Response) => {
+router.get("/dbcheck", async (req: Request, res: Response) => {
   try {
     const { error } = await supabase.from("import_jobs").select("id").limit(1);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     res.json({ status: "ok", db: "connected", service: "urban-tree-server" });
   } catch (error) {
