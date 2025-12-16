@@ -1,4 +1,5 @@
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import express, { Request, Response } from "express";
 import swaggerUi from "swagger-ui-express";
 
@@ -14,9 +15,25 @@ app.use(express.json());
 
 const BASE_PATH = process.env.BASE_PATH ?? "";
 
+const allowedOrigins = ["http://localhost:5173", "https://urban-tree.vercel.app"];
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
+// Preflight
+app.options("*", cors());
+
 const router = express.Router();
 app.use(BASE_PATH, router);
-
 /**
  * @swagger
  * /health:
