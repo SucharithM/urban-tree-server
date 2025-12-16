@@ -13,24 +13,10 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 
+app.use(cors({ origin: true, credentials: false }));
+app.options("*", cors({ origin: true }));
+
 const BASE_PATH = process.env.BASE_PATH ?? "";
-
-const allowedOrigins = ["http://localhost:5173", "https://urban-tree.vercel.app"];
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
-
-// Preflight
-app.options("*", cors());
 
 const router = express.Router();
 app.use(BASE_PATH, router);
