@@ -13,7 +13,7 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 
-app.use(cors({ origin: true, credentials: false }));
+app.use(cors({ origin: true, credentials: true }));
 const BASE_PATH = process.env.BASE_PATH ?? "";
 
 const router = express.Router();
