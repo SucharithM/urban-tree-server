@@ -14,12 +14,11 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use(cors({ origin: true, credentials: false }));
-app.options("*", cors({ origin: true }));
-
 const BASE_PATH = process.env.BASE_PATH ?? "";
 
 const router = express.Router();
 app.use(BASE_PATH, router);
+router.options(/.*/, cors({ origin: true }));
 /**
  * @swagger
  * /health:
